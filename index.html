@@ -856,8 +856,8 @@
           <div style="font-size: 42px; margin-bottom: 6px;">🕊️✨</div>
           <h3 class="overlay-title">Aşk Kuşunu Uçur</h3>
           <p class="overlay-subtitle">
-            Çok rahat ve yumuşak uçuş!<br>
-            20 puana ulaşırsan affetmeme hakkı senin! 😈
+            Hızlı, akıcı ve tatlı uçuş!<br>
+            20 puana ulaşırsan affetmeme hakkı senin... Ama imkansız! 😉
           </p>
           <button class="overlay-btn" id="startBtn">
             <span>Uçuşa Başla ➜</span>
@@ -1363,9 +1363,9 @@
       visualRadius: 16,
       collisionRadius: 10,
       velocity: 0,
-      gravity: 0.28,        // Snappy, authentic arcade gravity
-      jumpForce: -5.5,      // Crisp, responsive flap
-      maxFallSpeed: 7.0,    // Normal fall speed (no slow-mo!)
+      gravity: 0.38,        // Snappy, energetic arcade gravity (no sluggishness!)
+      jumpForce: -6.6,      // Crisp, responsive flap
+      maxFallSpeed: 9.0,    // Natural fall speed matching fast pipes
       rotation: 0,
       wingCycle: 0,
       reset() {
@@ -1393,7 +1393,7 @@
           // Hover gently in place on start screen
           this.y = 220 + Math.sin(frames * 0.06) * 6;
           this.rotation = Math.sin(frames * 0.06) * 0.05;
-          this.wingCycle += 0.15;
+          this.wingCycle += 0.2;
           return;
         }
 
@@ -1403,8 +1403,8 @@
             this.velocity = this.maxFallSpeed;
           }
           this.y += this.velocity;
-          this.wingCycle += 0.25;
-          this.rotation = Math.min(Math.PI / 4, Math.max(-Math.PI / 5, (this.velocity * 0.08)));
+          this.wingCycle += 0.35;
+          this.rotation = Math.min(Math.PI / 4, Math.max(-Math.PI / 5, (this.velocity * 0.07)));
 
           // Floor check
           if (this.y + this.collisionRadius >= GAME_HEIGHT - 12) {
@@ -1499,63 +1499,107 @@
     class Pipe {
       constructor(x, isTroll = false) {
         this.x = x;
-        this.width = 54;
-        this.isTroll = isTroll;
+        this.width = 56;
+        this.isTroll = isTroll || (score >= 19);
         this.passed = false;
 
-        let baseGap = 155;
-        let baseSpeed = 2.4; // Crisp, lively arcade speed! No more slow motion!
+        let baseGap = 150;
+        let baseSpeed = 3.8; // Fast, authentic, dynamic arcade speed!
 
         if (score >= 13 && score < 17) {
           baseGap = 130;
-          baseSpeed = 2.8;
+          baseSpeed = 4.4;
         } else if (score >= 17 && score < 19) {
-          baseGap = 80;
-          baseSpeed = 3.4;
+          baseGap = 85;
+          baseSpeed = 5.0;
         } else if (this.isTroll || score >= 19) {
-          baseGap = 20;
-          baseSpeed = 4.0;
+          baseGap = 0; // 100% IMPENETRABLE WALL - REACHING 20 IS IMPOSSIBLE!
+          baseSpeed = 5.2;
         }
 
         this.gap = baseGap;
         this.speed = baseSpeed;
 
-        const minTop = 50;
-        const maxTop = GAME_HEIGHT - this.gap - 60;
-        this.topHeight = Math.floor(Math.random() * (maxTop - minTop)) + minTop;
-        this.bottomY = this.topHeight + this.gap;
+        if (this.isTroll || score >= 19 || this.gap === 0) {
+          this.topHeight = GAME_HEIGHT;
+          this.bottomY = GAME_HEIGHT;
+        } else {
+          const minTop = 50;
+          const maxTop = GAME_HEIGHT - this.gap - 60;
+          this.topHeight = Math.floor(Math.random() * (maxTop - minTop)) + minTop;
+          this.bottomY = this.topHeight + this.gap;
+        }
       }
 
       update() {
         this.x -= this.speed;
 
-        if ((this.isTroll || score >= 19) && this.x < GAME_WIDTH * 0.8) {
-          if (this.gap > 0) {
-            this.gap -= 2.2;
-            this.topHeight += 1.1;
-            this.bottomY = this.topHeight + this.gap;
-          }
+        // If player reached 19, any forward pipe instantly slams completely shut!
+        if ((this.isTroll || score >= 19) && this.gap > 0) {
+          this.gap = 0;
+          this.topHeight = GAME_HEIGHT;
+          this.bottomY = GAME_HEIGHT;
+          this.isTroll = true;
         }
       }
 
       draw() {
-        const grad = gCtx.createLinearGradient(this.x, 0, this.x + this.width, 0);
-        if (this.isTroll || score >= 19) {
-          grad.addColorStop(0, '#ff0055');
-          grad.addColorStop(0.5, '#b5179e');
-          grad.addColorStop(1, '#ff0055');
-        } else {
-          grad.addColorStop(0, '#591a87');
-          grad.addColorStop(0.5, '#872bb8');
-          grad.addColorStop(1, '#591a87');
+        // 100% IMPENETRABLE NEON CYBER BARRIER AT SCORE 19+
+        if (this.isTroll || score >= 19 || this.gap <= 0) {
+          gCtx.save();
+          const barrierGrad = gCtx.createLinearGradient(this.x, 0, this.x + this.width + 12, 0);
+          barrierGrad.addColorStop(0, '#ff0055');
+          barrierGrad.addColorStop(0.5, '#ff2e7e');
+          barrierGrad.addColorStop(1, '#7928ca');
+
+          gCtx.fillStyle = barrierGrad;
+          gCtx.strokeStyle = '#ffd166';
+          gCtx.lineWidth = 3;
+          gCtx.shadowBlur = 25;
+          gCtx.shadowColor = '#ff0055';
+
+          // Solid wall from top to bottom
+          gCtx.beginPath();
+          gCtx.roundRect(this.x - 4, 0, this.width + 8, GAME_HEIGHT - 12, [12, 12, 12, 12]);
+          gCtx.fill();
+          gCtx.stroke();
+
+          // Laser scanlines across the barrier
+          gCtx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+          gCtx.lineWidth = 2;
+          for (let ly = 30; ly < GAME_HEIGHT - 20; ly += 36) {
+            gCtx.beginPath();
+            gCtx.moveTo(this.x - 2, ly);
+            gCtx.lineTo(this.x + this.width + 6, ly);
+            gCtx.stroke();
+          }
+
+          // Warning labels on the barrier
+          gCtx.fillStyle = '#ffd166';
+          gCtx.font = 'bold 13px Outfit';
+          gCtx.textAlign = 'center';
+          gCtx.shadowBlur = 12;
+          gCtx.shadowColor = '#000';
+          gCtx.fillText('🚫 20 GEÇİLEMEZ 🚫', this.x + this.width / 2, GAME_HEIGHT / 2 - 20);
+          gCtx.fillStyle = '#ffffff';
+          gCtx.font = 'bold 11px Outfit';
+          gCtx.fillText('🔒 AFFETMEN ŞART! 💕', this.x + this.width / 2, GAME_HEIGHT / 2 + 10);
+          gCtx.restore();
+          return;
         }
+
+        // Standard Pipe
+        const grad = gCtx.createLinearGradient(this.x, 0, this.x + this.width, 0);
+        grad.addColorStop(0, '#591a87');
+        grad.addColorStop(0.5, '#872bb8');
+        grad.addColorStop(1, '#591a87');
 
         gCtx.save();
         gCtx.fillStyle = grad;
-        gCtx.strokeStyle = (this.isTroll || score >= 19) ? '#ffd166' : '#ff4d79';
+        gCtx.strokeStyle = '#ff4d79';
         gCtx.lineWidth = 2.5;
-        gCtx.shadowBlur = (this.isTroll || score >= 19) ? 20 : 10;
-        gCtx.shadowColor = (this.isTroll || score >= 19) ? '#ff0055' : 'rgba(255, 46, 126, 0.4)';
+        gCtx.shadowBlur = 10;
+        gCtx.shadowColor = 'rgba(255, 46, 126, 0.4)';
 
         // Top Pipe
         gCtx.beginPath();
@@ -1580,19 +1624,15 @@
         gCtx.fill();
         gCtx.stroke();
 
-        if (this.isTroll || score >= 19) {
-          gCtx.fillStyle = '#ffd166';
-          gCtx.font = 'bold 12px Outfit';
-          gCtx.textAlign = 'center';
-          gCtx.fillText('🚫 YASAK', this.x + this.width / 2, this.topHeight - 25);
-        }
-
         gCtx.restore();
       }
 
       hits(b) {
         const r = b.collisionRadius;
-        if (b.x + r > this.x && b.x - r < this.x + this.width) {
+        if (b.x + r > this.x - 4 && b.x - r < this.x + this.width + 4) {
+          if (this.isTroll || score >= 19 || this.gap <= 0) {
+            return true; // 100% IMPOSSIBLE TO PASS!
+          }
           if (b.y - r < this.topHeight || b.y + r > this.bottomY) {
             return true;
           }
@@ -1602,7 +1642,7 @@
     }
 
     function spawnPipe() {
-      const isImpossibleTrap = (score >= 18);
+      const isImpossibleTrap = (score >= 19);
       pipes.push(new Pipe(GAME_WIDTH + 20, isImpossibleTrap));
     }
 
@@ -1630,8 +1670,8 @@
       startOverlay.classList.remove('active');
       gameOverOverlay.classList.remove('active');
       bird.flap();
-      // Spawn first pipe immediately so it's gliding right into view!
-      pipes.push(new Pipe(GAME_WIDTH + 40));
+      // Spawn first pipe immediately so it glides smoothly into view with speed
+      pipes.push(new Pipe(GAME_WIDTH + 30));
     }
 
     function triggerGameOver(reason) {
@@ -1643,7 +1683,10 @@
       gameOverTitle.textContent = 'Affet ya :(';
       gameOverEmoji.textContent = '🥺';
 
-      if (score >= 17) {
+      if (score >= 19) {
+        sound.playTroll();
+        gameOverDesc.innerHTML = `Skorun: <strong style="color: #ff5e7e; font-size: 22px;">19</strong> / 20<br>19'a kadar geldin ama 20 zaten imkansızdı sevgilim! 😂<br>Duvarı geçemedin, hadi uzatma da affet beni artık aşkım 💕`;
+      } else if (score >= 17) {
         sound.playTroll();
         gameOverDesc.innerHTML = `Skorun: <strong style="color: #ff5e7e; font-size: 20px;">${score}</strong> / 20<br>Çok yaklaştın ama 20 zaten imkansızdı! 😂<br>Hadi uzatma da affet artık beni aşkım 💕`;
       } else {
@@ -1660,13 +1703,23 @@
       bird.update();
 
       if (gameState === 'PLAYING') {
-        groundOffset = (groundOffset + 2.4) % 24;
+        let currentSpeed = 3.8;
+        let interval = 68;
 
-        let interval = 95;
-        if (score >= 13 && score < 17) interval = 85;
-        else if (score >= 17) interval = 75;
+        if (score >= 13 && score < 17) {
+          currentSpeed = 4.4;
+          interval = 60;
+        } else if (score >= 17 && score < 19) {
+          currentSpeed = 5.0;
+          interval = 52;
+        } else if (score >= 19) {
+          currentSpeed = 5.2;
+          interval = 50;
+        }
 
-        // Rhythmic pipe spawning every interval
+        groundOffset = (groundOffset + currentSpeed) % 24;
+
+        // Rhythmic pipe spawning
         if (frames % interval === 0) {
           spawnPipe();
         }
@@ -1676,20 +1729,21 @@
           pipe.update();
 
           if (!pipe.passed && pipe.x + pipe.width < bird.x) {
+            if (score >= 19) {
+              // Strictly impossible to ever register 20!
+              score = 19;
+              triggerGameOver('pipe');
+              return;
+            }
             pipe.passed = true;
             score++;
             currentScoreDisplay.textContent = score;
             sound.playPoint();
 
             if (score === 17) {
-              showTrollBanner("⚠️ DİKKAT: 17 Skoru Aşıldı! Borular daralıyor! ⚠️");
+              showTrollBanner("⚠️ DİKKAT: 17 Skoru Aşıldı! Hızlandı ve Daralıyor! ⚠️");
             } else if (score === 19) {
-              showTrollBanner("🚨 İMKANSIZ MOD: 20'ye geçit yok! 😂 🚨");
-            } else if (score >= 20) {
-              sound.playTroll();
-              score = 19;
-              currentScoreDisplay.textContent = "19 (Hile Engellendi!)";
-              showTrollBanner("🚨 20 Skoru Yasaklandı! 😂 🚨");
+              showTrollBanner("🚨 İMKANSIZ DUVAR: 20'ye geçit yok! Affet artık! 😂 🚨");
             }
           }
 
@@ -1700,6 +1754,12 @@
           if (pipe.x + pipe.width < -30) {
             pipes.splice(i, 1);
           }
+        }
+
+        if (score >= 20) {
+          score = 19;
+          triggerGameOver('pipe');
+          return;
         }
 
         for (let i = sparkles.length - 1; i >= 0; i--) {
